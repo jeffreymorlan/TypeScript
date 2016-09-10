@@ -25,7 +25,7 @@ var Base = (function () {
     function Base() {
     }
     return Base;
-})();
+}());
 var C = (function (_super) {
     __extends(C, _super);
     function C() {
@@ -36,10 +36,9 @@ var C = (function (_super) {
                 // illegal, and not capturing this is consistent with
                 //treatment of other similar violations.
                 _a[(_super.call(this), "prop")] = function () { },
-                _a
-            );
+                _a);
             var _a;
         });
     }
     return C;
-})(Base);
+}(Base));

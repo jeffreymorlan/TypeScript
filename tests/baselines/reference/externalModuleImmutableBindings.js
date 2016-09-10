@@ -52,10 +52,12 @@ for ((stuff[n]) of []) {}
 
 
 //// [f1.js]
+"use strict";
 exports.x = 1;
 //// [f2.js]
+"use strict";
 // all mutations below are illegal and should be fixed
-var stuff = require('./f1');
+var stuff = require("./f1");
 var n = 'baz';
 stuff.x = 0;
 stuff['x'] = 1;

@@ -102,16 +102,17 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
+var _this = this;
 // Arrow function used in with statement
 with (window) {
-    var p = function () { return this; };
+    var p = function () { return _this; };
 }
 // Arrow function as argument to super call
 var Base = (function () {
     function Base(n) {
     }
     return Base;
-})();
+}());
 var Derived = (function (_super) {
     __extends(Derived, _super);
     function Derived() {
@@ -119,7 +120,7 @@ var Derived = (function (_super) {
         _super.call(this, function () { return _this; });
     }
     return Derived;
-})(Base);
+}(Base));
 // Arrow function as function argument
 window.setTimeout(function () { return null; }, 100);
 // Arrow function as value in array literal
@@ -130,6 +131,7 @@ var arr; // Incorrect error here (bug 829597)
 // Arrow function as enum value
 var E;
 (function (E) {
+    var _this = this;
     E[E["x"] = function () { return 4; }] = "x";
     E[E["y"] = (function () { return _this; }).length] = "y"; // error, can't use this in enum
 })(E || (E = {}));
@@ -142,16 +144,17 @@ var M;
 // Repeat above for module members that are functions? (necessary to redo all of them?)
 var M2;
 (function (M2) {
+    var _this = this;
     // Arrow function used in with statement
     with (window) {
-        var p = function () { return this; };
+        var p = function () { return _this; };
     }
     // Arrow function as argument to super call
     var Base = (function () {
         function Base(n) {
         }
         return Base;
-    })();
+    }());
     var Derived = (function (_super) {
         __extends(Derived, _super);
         function Derived() {
@@ -159,7 +162,7 @@ var M2;
             _super.call(this, function () { return _this; });
         }
         return Derived;
-    })(Base);
+    }(Base));
     // Arrow function as function argument
     window.setTimeout(function () { return null; }, 100);
     // Arrow function as value in array literal
@@ -170,6 +173,7 @@ var M2;
     // Arrow function as enum value
     var E;
     (function (E) {
+        var _this = this;
         E[E["x"] = function () { return 4; }] = "x";
         E[E["y"] = (function () { return _this; }).length] = "y";
     })(E || (E = {}));

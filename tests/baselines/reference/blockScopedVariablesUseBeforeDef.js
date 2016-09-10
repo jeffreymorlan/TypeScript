@@ -122,7 +122,7 @@ function foo3() {
         }
         X.prototype.m = function () { return x; };
         return X;
-    })();
+    }());
     var x;
 }
 function foo4() {
@@ -131,7 +131,7 @@ function foo4() {
         }
         class_1.prototype.m = function () { return x; };
         return class_1;
-    })();
+    }());
     var x;
 }
 function foo5() {
@@ -150,7 +150,7 @@ function foo7() {
             this.a = x;
         }
         return A;
-    })();
+    }());
     var x;
 }
 function foo8() {
@@ -159,35 +159,39 @@ function foo8() {
             this.a = x;
         }
         return class_2;
-    })();
+    }());
     var x;
 }
 function foo9() {
-    var y = (function () {
-        function class_3() {
-        }
-        class_3.a = x;
-        return class_3;
-    })();
+    var y = (_a = (function () {
+            function class_3() {
+            }
+            return class_3;
+        }()),
+        _a.a = x,
+        _a);
     var x;
+    var _a;
 }
 function foo10() {
     var A = (function () {
         function A() {
         }
-        A.a = x;
         return A;
-    })();
+    }());
+    A.a = x;
     var x;
 }
 function foo11() {
     function f() {
-        var y = (function () {
-            function class_4() {
-            }
-            class_4.a = x;
-            return class_4;
-        })();
+        var y = (_a = (function () {
+                function class_4() {
+                }
+                return class_4;
+            }()),
+            _a.a = x,
+            _a);
+        var _a;
     }
     var x;
 }
@@ -198,7 +202,7 @@ function foo12() {
                 this.a = x;
             }
             return class_5;
-        })();
+        }());
     }
     var x;
 }

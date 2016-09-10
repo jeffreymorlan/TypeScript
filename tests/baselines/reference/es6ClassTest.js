@@ -97,7 +97,7 @@ var Bar = (function () {
         return x;
     };
     return Bar;
-})();
+}());
 // new-style class
 var Foo = (function (_super) {
     __extends(Foo, _super);
@@ -113,9 +113,9 @@ var Foo = (function (_super) {
     }
     Foo.prototype.bar = function () { return 0; };
     Foo.prototype.boo = function (x) { return x; };
-    Foo.statVal = 0;
     return Foo;
-})(Bar);
+}(Bar));
+Foo.statVal = 0;
 var f = new Foo();
 //class GetSetMonster {
 //  // attack(target) {

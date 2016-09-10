@@ -1,6 +1,5 @@
-/// <reference path="../../node_modules/tslint/typings/typescriptServices.d.ts" />
-/// <reference path="../../node_modules/tslint/lib/tslint.d.ts" />
-
+import * as Lint from "tslint/lib/lint";
+import * as ts from "typescript";
 
 export class Rule extends Lint.Rules.AbstractRule {
     public static FAILURE_STRING_FACTORY = (identifier: string) => `Identifier '${identifier}' never appears on the LHS of an assignment - use const instead of let for its declaration.`;
@@ -10,44 +9,12 @@ export class Rule extends Lint.Rules.AbstractRule {
     }
 }
 
-function isBindingPattern(node: ts.Node): node is ts.BindingPattern {
-    return !!node && (node.kind === ts.SyntaxKind.ArrayBindingPattern || node.kind === ts.SyntaxKind.ObjectBindingPattern);
-}
-
-function walkUpBindingElementsAndPatterns(node: ts.Node): ts.Node {
-    while (node && (node.kind === ts.SyntaxKind.BindingElement || isBindingPattern(node))) {
-        node = node.parent;
-    }
-
-    return node;
-}
-
-function getCombinedNodeFlags(node: ts.Node): ts.NodeFlags {
-    node = walkUpBindingElementsAndPatterns(node);
-
-    let flags = node.flags;
-    if (node.kind === ts.SyntaxKind.VariableDeclaration) {
-        node = node.parent;
-    }
-
-    if (node && node.kind === ts.SyntaxKind.VariableDeclarationList) {
-        flags |= node.flags;
-        node = node.parent;
-    }
-
-    if (node && node.kind === ts.SyntaxKind.VariableStatement) {
-        flags |= node.flags;
-    }
-
-    return flags;
-}
-
 function isLet(node: ts.Node) {
-    return !!(getCombinedNodeFlags(node) & ts.NodeFlags.Let);
+    return !!(ts.getCombinedNodeFlags(node) & ts.NodeFlags.Let);
 }
 
 function isExported(node: ts.Node) {
-    return !!(getCombinedNodeFlags(node) & ts.NodeFlags.Export);
+    return !!(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export);
 }
 
 function isAssignmentOperator(token: ts.SyntaxKind): boolean {
@@ -64,7 +31,7 @@ interface DeclarationUsages {
 }
 
 class PreferConstWalker extends Lint.RuleWalker {
-    private inScopeLetDeclarations: ts.Map<DeclarationUsages>[] = [];
+    private inScopeLetDeclarations: ts.MapLike<DeclarationUsages>[] = [];
     private errors: Lint.RuleFailure[] = [];
     private markAssignment(identifier: ts.Identifier) {
         const name = identifier.text;
@@ -85,12 +52,12 @@ class PreferConstWalker extends Lint.RuleWalker {
 
     visitBinaryExpression(node: ts.BinaryExpression) {
         if (isAssignmentOperator(node.operatorToken.kind)) {
-            this.visitLHSExpressions(node.left);
+            this.visitLeftHandSideExpression(node.left);
         }
         super.visitBinaryExpression(node);
     }
 
-    private visitLHSExpressions(node: ts.Expression) {
+    private visitLeftHandSideExpression(node: ts.Expression) {
         while (node.kind === ts.SyntaxKind.ParenthesizedExpression) {
             node = (node as ts.ParenthesizedExpression).expression;
         }
@@ -101,34 +68,41 @@ class PreferConstWalker extends Lint.RuleWalker {
             this.visitBindingLiteralExpression(node as (ts.ArrayLiteralExpression | ts.ObjectLiteralExpression));
         }
     }
-    
+
     private visitBindingLiteralExpression(node: ts.ArrayLiteralExpression | ts.ObjectLiteralExpression) {
         if (node.kind === ts.SyntaxKind.ObjectLiteralExpression) {
             const pattern = node as ts.ObjectLiteralExpression;
             for (const element of pattern.properties) {
-                if (element.name.kind === ts.SyntaxKind.Identifier) {
-                    this.markAssignment(element.name as ts.Identifier)
+                const kind = element.kind;
+
+                if (kind === ts.SyntaxKind.ShorthandPropertyAssignment) {
+                    this.markAssignment((element as ts.ShorthandPropertyAssignment).name);
                 }
-                else if (isBindingPattern(element.name)) {
-                    this.visitBindingPatternIdentifiers(element.name as ts.BindingPattern);
+                else if (kind === ts.SyntaxKind.PropertyAssignment) {
+                    this.visitLeftHandSideExpression((element as ts.PropertyAssignment).initializer);
                 }
             }
         }
         else if (node.kind === ts.SyntaxKind.ArrayLiteralExpression) {
             const pattern = node as ts.ArrayLiteralExpression;
             for (const element of pattern.elements) {
-                this.visitLHSExpressions(element);
+                this.visitLeftHandSideExpression(element);
             }
         }
     }
 
     private visitBindingPatternIdentifiers(pattern: ts.BindingPattern) {
         for (const element of pattern.elements) {
-            if (element.name.kind === ts.SyntaxKind.Identifier) {
-                this.markAssignment(element.name as ts.Identifier);
+            if (element.kind !== ts.SyntaxKind.BindingElement) {
+                continue;
+            }
+
+            const name = (<ts.BindingElement>element).name;
+            if (name.kind === ts.SyntaxKind.Identifier) {
+                this.markAssignment(name as ts.Identifier);
             }
             else {
-                this.visitBindingPatternIdentifiers(element.name as ts.BindingPattern);
+                this.visitBindingPatternIdentifiers(name as ts.BindingPattern);
             }
         }
     }
@@ -145,7 +119,7 @@ class PreferConstWalker extends Lint.RuleWalker {
 
     private visitAnyUnaryExpression(node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression) {
         if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
-            this.visitLHSExpressions(node.operand);
+            this.visitLeftHandSideExpression(node.operand);
         }
     }
 
@@ -170,7 +144,7 @@ class PreferConstWalker extends Lint.RuleWalker {
     }
 
     private visitAnyForStatement(node: ts.ForOfStatement | ts.ForInStatement) {
-        const names: ts.Map<DeclarationUsages> = {};
+        const names: ts.MapLike<DeclarationUsages> = {};
         if (isLet(node.initializer)) {
             if (node.initializer.kind === ts.SyntaxKind.VariableDeclarationList) {
                 this.collectLetIdentifiers(node.initializer as ts.VariableDeclarationList, names);
@@ -192,7 +166,7 @@ class PreferConstWalker extends Lint.RuleWalker {
     }
 
     visitBlock(node: ts.Block) {
-        const names: ts.Map<DeclarationUsages> = {};
+        const names: ts.MapLike<DeclarationUsages> = {};
         for (const statement of node.statements) {
             if (statement.kind === ts.SyntaxKind.VariableStatement) {
                 this.collectLetIdentifiers((statement as ts.VariableStatement).declarationList, names);
@@ -203,7 +177,7 @@ class PreferConstWalker extends Lint.RuleWalker {
         this.popDeclarations();
     }
 
-    private collectLetIdentifiers(list: ts.VariableDeclarationList, ret: ts.Map<DeclarationUsages>) {
+    private collectLetIdentifiers(list: ts.VariableDeclarationList, ret: ts.MapLike<DeclarationUsages>) {
         for (const node of list.declarations) {
             if (isLet(node) && !isExported(node)) {
                 this.collectNameIdentifiers(node, node.name, ret);
@@ -211,18 +185,20 @@ class PreferConstWalker extends Lint.RuleWalker {
         }
     }
 
-    private collectNameIdentifiers(value: ts.VariableDeclaration, node: ts.Identifier | ts.BindingPattern, table: ts.Map<DeclarationUsages>) {
+    private collectNameIdentifiers(declaration: ts.VariableDeclaration, node: ts.Identifier | ts.BindingPattern, table: ts.MapLike<DeclarationUsages>) {
         if (node.kind === ts.SyntaxKind.Identifier) {
-            table[(node as ts.Identifier).text] = {declaration: value, usages: 0};
+            table[(node as ts.Identifier).text] = { declaration, usages: 0 };
         }
         else {
-            this.collectBindingPatternIdentifiers(value, node as ts.BindingPattern, table);
+            this.collectBindingPatternIdentifiers(declaration, node as ts.BindingPattern, table);
         }
     }
 
-    private collectBindingPatternIdentifiers(value: ts.VariableDeclaration, pattern: ts.BindingPattern, table: ts.Map<DeclarationUsages>) {
+    private collectBindingPatternIdentifiers(value: ts.VariableDeclaration, pattern: ts.BindingPattern, table: ts.MapLike<DeclarationUsages>) {
         for (const element of pattern.elements) {
-            this.collectNameIdentifiers(value, element.name, table);
+            if (element.kind === ts.SyntaxKind.BindingElement) {
+                this.collectNameIdentifiers(value, (<ts.BindingElement>element).name, table);
+            }
         }
     }
 }

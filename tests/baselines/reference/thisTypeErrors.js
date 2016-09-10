@@ -68,16 +68,16 @@ var C1 = (function () {
     function C1() {
     }
     return C1;
-})();
+}());
 var C2 = (function () {
     function C2() {
     }
     C2.foo = function (x) {
         return undefined;
     };
-    C2.y = undefined;
     return C2;
-})();
+}());
+C2.y = undefined;
 var N1;
 (function (N1) {
     N1.y = this;
@@ -101,4 +101,4 @@ var C3 = (function () {
         };
     };
     return C3;
-})();
+}());

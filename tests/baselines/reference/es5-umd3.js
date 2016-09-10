@@ -15,14 +15,15 @@ export default class A
 
 
 //// [es5-umd3.js]
-(function (factory) {
+(function (dependencies, factory) {
     if (typeof module === 'object' && typeof module.exports === 'object') {
         var v = factory(require, exports); if (v !== undefined) module.exports = v;
     }
     else if (typeof define === 'function' && define.amd) {
-        define(["require", "exports"], factory);
+        define(dependencies, factory);
     }
-})(function (require, exports) {
+})(["require", "exports"], function (require, exports) {
+    "use strict";
     var A = (function () {
         function A() {
         }
@@ -30,7 +31,7 @@ export default class A
             return 42;
         };
         return A;
-    })();
+    }());
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = A;
 });

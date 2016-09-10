@@ -24,16 +24,18 @@ export {MyClass};
 
 
 //// [db.js]
+"use strict";
 var db = (function () {
     function db() {
     }
     db.prototype.doSomething = function () {
     };
     return db;
-})();
+}());
 exports.db = db;
 //// [service.js]
-var db = require('./db');
+"use strict";
+var db = require("./db");
 function someDecorator(target) {
     return target;
 }
@@ -42,10 +44,10 @@ var MyClass = (function () {
         this.db = db;
         this.db.doSomething();
     }
-    MyClass = __decorate([
-        someDecorator, 
-        __metadata('design:paramtypes', [db.db])
-    ], MyClass);
     return MyClass;
-})();
+}());
+MyClass = __decorate([
+    someDecorator,
+    __metadata("design:paramtypes", [db.db])
+], MyClass);
 exports.MyClass = MyClass;

@@ -40,7 +40,7 @@ var f = function foo() {
         x[_i - 0] = arguments[_i];
     }
 };
-var f2 = function (x) {
+var f2 = function () {
     var y = [];
     for (var _i = 1; _i < arguments.length; _i++) {
         y[_i - 1] = arguments[_i];
@@ -56,7 +56,7 @@ var C = (function () {
         }
     };
     return C;
-})();
+}());
 var a;
 var b = {
     foo: function () {
@@ -65,7 +65,7 @@ var b = {
             x[_i - 0] = arguments[_i];
         }
     },
-    a: function foo(x) {
+    a: function foo() {
         var y = [];
         for (var _i = 1; _i < arguments.length; _i++) {
             y[_i - 1] = arguments[_i];

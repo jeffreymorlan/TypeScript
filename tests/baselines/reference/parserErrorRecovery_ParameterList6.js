@@ -7,8 +7,8 @@ class Foo {
 var Foo = (function () {
     function Foo() {
     }
-    Foo.prototype.banana = ;
+    Foo.prototype.banana = function (x) { };
     return Foo;
-})();
+}());
 break ;
 { }

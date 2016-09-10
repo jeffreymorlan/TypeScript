@@ -22,12 +22,12 @@ var SomeBase = (function () {
         return 2;
     };
     return SomeBase;
-})();
+}());
 var P = (function (_super) {
     __extends(P, _super);
     function P() {
         _super.apply(this, arguments);
     }
-    P.SomeNumber = P.GetNumber();
     return P;
-})(SomeBase);
+}(SomeBase));
+P.SomeNumber = P.GetNumber();

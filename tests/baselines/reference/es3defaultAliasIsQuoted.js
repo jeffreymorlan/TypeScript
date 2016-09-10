@@ -15,13 +15,14 @@ import {Foo, default as assert} from "./es3defaultAliasQuoted_file0";
 assert(Foo.CONSTANT === "Foo");
 
 //// [es3defaultAliasQuoted_file0.js]
+"use strict";
 var Foo = (function () {
     function Foo() {
     }
-    Foo.CONSTANT = "Foo";
     return Foo;
-})();
+}());
 exports.Foo = Foo;
+Foo.CONSTANT = "Foo";
 function assert(value) {
     if (!value)
         throw new Error("Assertion failed!");
@@ -29,5 +30,6 @@ function assert(value) {
 exports.__esModule = true;
 exports["default"] = assert;
 //// [es3defaultAliasQuoted_file1.js]
+"use strict";
 var es3defaultAliasQuoted_file0_1 = require("./es3defaultAliasQuoted_file0");
 es3defaultAliasQuoted_file0_1["default"](es3defaultAliasQuoted_file0_1.Foo.CONSTANT === "Foo");

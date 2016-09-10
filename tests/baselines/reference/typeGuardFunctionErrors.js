@@ -155,23 +155,26 @@ var A = (function () {
     function A() {
     }
     return A;
-})();
+}());
 var B = (function () {
     function B() {
     }
     return B;
-})();
+}());
 var C = (function (_super) {
     __extends(C, _super);
     function C() {
         _super.apply(this, arguments);
     }
     return C;
-})(A);
+}(A));
 function hasANonBooleanReturnStatement(x) {
     return '';
 }
-function hasTypeGuardTypeInsideTypeGuardType(x) {
+function hasTypeGuardTypeInsideTypeGuardType(x) { }
+is;
+A;
+{
     return true;
 }
 function hasMissingIsKeyword() {
@@ -224,10 +227,15 @@ assign3 = function (p1, p2, p3) {
     return true;
 };
 // Type predicates in non-return type positions
-var b1;
-function b2(a) { }
+var b1 = is, A;
+function b2(a, A) {
+    if (a === void 0) { a = is; }
+}
 ;
-function b3() {
+function b3() { }
+is;
+A;
+{
     return true;
 }
 ;
@@ -251,7 +259,9 @@ var D = (function () {
         configurable: true
     });
     return D;
-})();
+}());
+is;
+C;
 // Reference to rest parameter
 function b4() {
     var a = [];

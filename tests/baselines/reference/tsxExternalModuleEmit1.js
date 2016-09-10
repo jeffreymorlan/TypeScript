@@ -32,12 +32,13 @@ export class Button extends React.Component<any, any> {
 }
 
 //// [button.jsx]
+"use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var React = require('react');
+var React = require("react");
 var Button = (function (_super) {
     __extends(Button, _super);
     function Button() {
@@ -47,17 +48,18 @@ var Button = (function (_super) {
         return <button>Some button</button>;
     };
     return Button;
-})(React.Component);
+}(React.Component));
 exports.Button = Button;
 //// [app.jsx]
+"use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var React = require('react');
+var React = require("react");
 // Should see var button_1 = require('./button') here
-var button_1 = require('./button');
+var button_1 = require("./button");
 var App = (function (_super) {
     __extends(App, _super);
     function App() {
@@ -67,5 +69,5 @@ var App = (function (_super) {
         return <button_1.Button />;
     };
     return App;
-})(React.Component);
+}(React.Component));
 exports.App = App;

@@ -67,6 +67,7 @@ function foo<T, U>(t: T, u: U) {
     var x : T | U;
     x = t; // ok
     x = u; // ok
+    x = undefined;
     t = x; // error U not assignable to T
     u = x; // error T not assignable to U
 }
@@ -83,7 +84,7 @@ var C = (function () {
     function C() {
     }
     return C;
-})();
+}());
 var D = (function (_super) {
     __extends(D, _super);
     function D() {
@@ -91,7 +92,7 @@ var D = (function (_super) {
     }
     D.prototype.foo1 = function () { };
     return D;
-})(C);
+}(C));
 var E = (function (_super) {
     __extends(E, _super);
     function E() {
@@ -99,7 +100,7 @@ var E = (function (_super) {
     }
     E.prototype.foo2 = function () { };
     return E;
-})(C);
+}(C));
 var unionDE;
 var num;
 var str;
@@ -157,6 +158,7 @@ function foo(t, u) {
     var x;
     x = t; // ok
     x = u; // ok
+    x = undefined;
     t = x; // error U not assignable to T
     u = x; // error T not assignable to U
 }

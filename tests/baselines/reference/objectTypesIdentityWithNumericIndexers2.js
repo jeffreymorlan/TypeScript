@@ -29,7 +29,7 @@ class PB extends B {
 var a: {
     [x: number]: Base;
 }
-var b: { [x: number]: Derived; } = { foo: <Derived>null };
+var b: { [x: number]: Derived; } = { 0: <Derived>null };
 
 function foo1(x: A);
 function foo1(x: A); // error
@@ -136,45 +136,45 @@ var Base = (function () {
     function Base() {
     }
     return Base;
-})();
+}());
 var Derived = (function (_super) {
     __extends(Derived, _super);
     function Derived() {
         _super.apply(this, arguments);
     }
     return Derived;
-})(Base);
+}(Base));
 var A = (function () {
     function A() {
     }
     return A;
-})();
+}());
 var B = (function () {
     function B() {
     }
     return B;
-})();
+}());
 var C = (function () {
     function C() {
     }
     return C;
-})();
+}());
 var PA = (function (_super) {
     __extends(PA, _super);
     function PA() {
         _super.apply(this, arguments);
     }
     return PA;
-})(A);
+}(A));
 var PB = (function (_super) {
     __extends(PB, _super);
     function PB() {
         _super.apply(this, arguments);
     }
     return PB;
-})(B);
+}(B));
 var a;
-var b = { foo: null };
+var b = { 0: null };
 function foo1(x) { }
 function foo1b(x) { }
 function foo1c(x) { }

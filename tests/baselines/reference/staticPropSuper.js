@@ -45,16 +45,16 @@ var A = (function () {
     function A() {
     }
     return A;
-})();
+}());
 var B = (function (_super) {
     __extends(B, _super);
     function B() {
         var x = 1; // should not error
         _super.call(this);
     }
-    B.s = 9;
     return B;
-})(A);
+}(A));
+B.s = 9;
 var C = (function (_super) {
     __extends(C, _super);
     function C() {
@@ -62,7 +62,7 @@ var C = (function (_super) {
         var x = 1; // should error
     }
     return C;
-})(A);
+}(A));
 var D = (function (_super) {
     __extends(D, _super);
     function D() {
@@ -70,7 +70,7 @@ var D = (function (_super) {
         var x = 1; // should error
     }
     return D;
-})(A);
+}(A));
 var E = (function (_super) {
     __extends(E, _super);
     function E() {
@@ -78,4 +78,4 @@ var E = (function (_super) {
         var x = 1; // should error
     }
     return E;
-})(A);
+}(A));

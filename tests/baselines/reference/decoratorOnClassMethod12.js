@@ -28,16 +28,16 @@ var M;
         }
         S.prototype.decorator = function (target, key) { };
         return S;
-    })();
+    }());
     var C = (function (_super) {
         __extends(C, _super);
         function C() {
             _super.apply(this, arguments);
         }
         C.prototype.method = function () { };
-        __decorate([
-            _super.decorator
-        ], C.prototype, "method", null);
         return C;
-    })(S);
+    }(S));
+    __decorate([
+        _super.decorator
+    ], C.prototype, "method", null);
 })(M || (M = {}));

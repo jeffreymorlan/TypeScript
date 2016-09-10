@@ -13,10 +13,12 @@ import { foo } from './foo';
 
 
 //// [foo.js]
+"use strict";
 function foo() { }
 exports.foo = foo;
 //// [bar.js]
-var foo_1 = require('./foo');
+"use strict";
+var foo_1 = require("./foo");
 // These should emit identically
 foo_1.foo;
 foo_1.foo;

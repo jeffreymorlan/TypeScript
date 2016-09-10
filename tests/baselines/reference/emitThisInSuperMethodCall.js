@@ -39,7 +39,7 @@ var User = (function () {
     User.prototype.sayHello = function () {
     };
     return User;
-})();
+}());
 var RegisteredUser = (function (_super) {
     __extends(RegisteredUser, _super);
     function RegisteredUser() {
@@ -54,8 +54,9 @@ var RegisteredUser = (function (_super) {
     };
     RegisteredUser.prototype.g = function () {
         function inner() {
+            var _this = this;
             (function () {
-                _super.sayHello.call(this);
+                _super.sayHello.call(_this);
             });
         }
     };
@@ -65,4 +66,4 @@ var RegisteredUser = (function (_super) {
         }
     };
     return RegisteredUser;
-})(User);
+}(User));

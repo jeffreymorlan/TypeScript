@@ -27,12 +27,9 @@
 
 // @Filename: commentsExternalModules_file1.ts
 /////**This is on import declaration*/
-////import ex/*9*/tMod = require("commentsExternalModules_file0");
+////import ex/*9*/tMod = require("./commentsExternalModules_file0");
 /////*10*/extMod./*11*/m1./*12*/fooExp/*13q*/ort(/*13*/);
 ////var new/*14*/Var = new extMod.m1.m2./*15*/c();
-
-// this line triggers a semantic/syntactic error check, remove line when 788570 is fixed
-edit.insert('');
 
 goTo.file("commentsExternalModules_file0.ts");
 goTo.marker('1');
@@ -69,10 +66,10 @@ verify.memberListContains("i", "var m1.m2.i: m1.m2.c", "i");
 
 goTo.file("commentsExternalModules_file1.ts");
 goTo.marker('9');
-verify.quickInfoIs('import extMod = require("commentsExternalModules_file0")', "This is on import declaration");
+verify.quickInfoIs('import extMod = require("./commentsExternalModules_file0")', "This is on import declaration");
 
 goTo.marker('10');
-verify.completionListContains("extMod", 'import extMod = require("commentsExternalModules_file0")', "This is on import declaration");
+verify.completionListContains("extMod", 'import extMod = require("./commentsExternalModules_file0")', "This is on import declaration");
 
 goTo.marker('11');
 verify.memberListContains("m1", "namespace extMod.m1");

@@ -18,13 +18,13 @@ var Base = (function () {
     function Base() {
     }
     return Base;
-})();
+}());
 var Derived = (function (_super) {
     __extends(Derived, _super);
     function Derived() {
         _super.apply(this, arguments);
         this.bing = function () { return Base.foo; }; // error
     }
-    Derived.bar = Base.foo; // error
     return Derived;
-})(Base);
+}(Base));
+Derived.bar = Base.foo; // error

@@ -70,16 +70,16 @@ var A = (function () {
     function A() {
     }
     return A;
-})();
+}());
 var B = (function (_super) {
     __extends(B, _super);
     function B() {
         "use strict"; // No error
-        this.s = 9;
         _super.call(this);
+        this.s = 9;
     }
     return B;
-})(A);
+}(A));
 var C = (function (_super) {
     __extends(C, _super);
     function C() {
@@ -88,7 +88,7 @@ var C = (function (_super) {
         "use strict";
     }
     return C;
-})(A);
+}(A));
 var D = (function (_super) {
     __extends(D, _super);
     function D() {
@@ -98,25 +98,25 @@ var D = (function (_super) {
         "use strict";
     }
     return D;
-})(A);
+}(A));
 var Bs = (function (_super) {
     __extends(Bs, _super);
     function Bs() {
         "use strict"; // No error
         _super.call(this);
     }
-    Bs.s = 9;
     return Bs;
-})(A);
+}(A));
+Bs.s = 9;
 var Cs = (function (_super) {
     __extends(Cs, _super);
     function Cs() {
         _super.call(this); // No error
         "use strict";
     }
-    Cs.s = 9;
     return Cs;
-})(A);
+}(A));
+Cs.s = 9;
 var Ds = (function (_super) {
     __extends(Ds, _super);
     function Ds() {
@@ -124,6 +124,6 @@ var Ds = (function (_super) {
         _super.call(this);
         "use strict";
     }
-    Ds.s = 9;
     return Ds;
-})(A);
+}(A));
+Ds.s = 9;

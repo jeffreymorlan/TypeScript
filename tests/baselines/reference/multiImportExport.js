@@ -26,24 +26,28 @@ class Adder {
 export = Adder;
 
 //// [Adder.js]
+"use strict";
 var Adder = (function () {
     function Adder() {
     }
     Adder.prototype.add = function (a, b) {
     };
     return Adder;
-})();
+}());
 module.exports = Adder;
 //// [Math.js]
-var Adder = require('./Adder');
+"use strict";
+var Adder = require("./Adder");
 var Math = {
     Adder: Adder
 };
 module.exports = Math;
 //// [Drawing.js]
-exports.Math = require('./Math/Math');
+"use strict";
+exports.Math = require("./Math/Math");
 //// [consumer.js]
-var Drawing = require('./Drawing');
+"use strict";
+var Drawing = require("./Drawing");
 var addr = new Drawing.Math.Adder();
 
 

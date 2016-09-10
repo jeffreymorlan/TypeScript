@@ -1,25 +1,16 @@
 ///<reference path="harness.ts" />
 ///<reference path="runnerbase.ts" />
-/* tslint:disable:no-null */
 
 // Test case is json of below type in tests/cases/project/
 interface ProjectRunnerTestCase {
     scenario: string;
     projectRoot: string; // project where it lives - this also is the current directory when compiling
     inputFiles: string[]; // list of input files to be given to program
-    out?: string; // --out
-    outDir?: string; // --outDir
-    sourceMap?: boolean; // --map
-    mapRoot?: string; // --mapRoot
     resolveMapRoot?: boolean; // should we resolve this map root and give compiler the absolute disk path as map root?
-    sourceRoot?: string; // --sourceRoot
     resolveSourceRoot?: boolean; // should we resolve this source root and give compiler the absolute disk path as map root?
-    declaration?: boolean; // --d
     baselineCheck?: boolean; // Verify the baselines of output files, if this is false, we will write to output to the disk but there is no verification of baselines
     runTest?: boolean; // Run the resulting test
     bug?: string; // If there is any bug associated with this test case
-    noResolve?: boolean;
-    rootDir?: string; // --rootDir
 }
 
 interface ProjectRunnerTestCaseResolutionInfo extends ProjectRunnerTestCase {
@@ -34,22 +25,30 @@ interface BatchCompileProjectTestCaseEmittedFile extends Harness.Compiler.Genera
 
 interface CompileProjectFilesResult {
     moduleKind: ts.ModuleKind;
-    program: ts.Program;
+    program?: ts.Program;
+    compilerOptions?: ts.CompilerOptions;
     errors: ts.Diagnostic[];
-    sourceMapData: ts.SourceMapData[];
+    sourceMapData?: ts.SourceMapData[];
 }
 
 interface BatchCompileProjectTestCaseResult extends CompileProjectFilesResult {
-    outputFiles: BatchCompileProjectTestCaseEmittedFile[];
-    nonSubfolderDiskFiles: number;
+    outputFiles?: BatchCompileProjectTestCaseEmittedFile[];
 }
 
 class ProjectRunner extends RunnerBase {
+
+    public enumerateTestFiles() {
+        return this.enumerateFiles("tests/cases/project", /\.json$/, { recursive: true });
+    }
+
+    public kind(): TestRunnerKind {
+        return "project";
+    }
+
     public initializeTests() {
         if (this.tests.length === 0) {
-            const testFiles = this.enumerateFiles("tests/cases/project", /\.json$/, { recursive: true });
+            const testFiles = this.enumerateTestFiles();
             testFiles.forEach(fn => {
-                fn = fn.replace(/\\/g, "/");
                 this.runProjectTestCase(fn);
             });
         }
@@ -59,9 +58,9 @@ class ProjectRunner extends RunnerBase {
     }
 
     private runProjectTestCase(testCaseFileName: string) {
-        let testCase: ProjectRunnerTestCase;
+        let testCase: ProjectRunnerTestCase & ts.CompilerOptions;
 
-        let testFileText: string = null;
+        let testFileText: string;
         try {
             testFileText = Harness.IO.readFile(testCaseFileName);
         }
@@ -70,7 +69,7 @@ class ProjectRunner extends RunnerBase {
         }
 
         try {
-            testCase = <ProjectRunnerTestCase>JSON.parse(testFileText);
+            testCase = <ProjectRunnerTestCase & ts.CompilerOptions>JSON.parse(testFileText);
         }
         catch (e) {
             assert(false, "Testcase: " + testCaseFileName + " does not contain valid json format: " + e.message);
@@ -128,9 +127,10 @@ class ProjectRunner extends RunnerBase {
 
         function compileProjectFiles(moduleKind: ts.ModuleKind, getInputFiles: () => string[],
             getSourceFileTextImpl: (fileName: string) => string,
-            writeFile: (fileName: string, data: string, writeByteOrderMark: boolean) => void): CompileProjectFilesResult {
+            writeFile: (fileName: string, data: string, writeByteOrderMark: boolean) => void,
+            compilerOptions: ts.CompilerOptions): CompileProjectFilesResult {
 
-            const program = ts.createProgram(getInputFiles(), createCompilerOptions(), createCompilerHost());
+            const program = ts.createProgram(getInputFiles(), compilerOptions, createCompilerHost());
             let errors = ts.getPreEmitDiagnostics(program);
 
             const emitResult = program.emit();
@@ -155,21 +155,6 @@ class ProjectRunner extends RunnerBase {
                 sourceMapData
             };
 
-            function createCompilerOptions(): ts.CompilerOptions {
-                return {
-                    declaration: !!testCase.declaration,
-                    sourceMap: !!testCase.sourceMap,
-                    outFile: testCase.out,
-                    outDir: testCase.outDir,
-                    mapRoot: testCase.resolveMapRoot && testCase.mapRoot ? Harness.IO.resolvePath(testCase.mapRoot) : testCase.mapRoot,
-                    sourceRoot: testCase.resolveSourceRoot && testCase.sourceRoot ? Harness.IO.resolvePath(testCase.sourceRoot) : testCase.sourceRoot,
-                    module: moduleKind,
-                    moduleResolution: ts.ModuleResolutionKind.Classic, // currently all tests use classic module resolution kind, this will change in the future 
-                    noResolve: testCase.noResolve,
-                    rootDir: testCase.rootDir
-                };
-            }
-
             function getSourceFileText(fileName: string): string {
                 const text = getSourceFileTextImpl(fileName);
                 return text !== undefined ? text : getSourceFileTextImpl(ts.getNormalizedAbsolutePath(fileName, getCurrentDirectory()));
@@ -178,7 +163,7 @@ class ProjectRunner extends RunnerBase {
             function getSourceFile(fileName: string, languageVersion: ts.ScriptTarget): ts.SourceFile {
                 let sourceFile: ts.SourceFile = undefined;
                 if (fileName === Harness.Compiler.defaultLibFileName) {
-                    sourceFile = languageVersion === ts.ScriptTarget.ES6 ? Harness.Compiler.defaultES6LibSourceFile : Harness.Compiler.defaultLibSourceFile;
+                    sourceFile = Harness.Compiler.getDefaultLibrarySourceFile(Harness.Compiler.getDefaultLibFileName(compilerOptions));
                 }
                 else {
                     const text = getSourceFileText(fileName);
@@ -200,7 +185,8 @@ class ProjectRunner extends RunnerBase {
                     useCaseSensitiveFileNames: () => Harness.IO.useCaseSensitiveFileNames(),
                     getNewLine: () => Harness.IO.newLine(),
                     fileExists: fileName => fileName === Harness.Compiler.defaultLibFileName ||  getSourceFileText(fileName) !== undefined,
-                    readFile: fileName => Harness.IO.readFile(fileName)
+                    readFile: fileName => Harness.IO.readFile(fileName),
+                    getDirectories: path => Harness.IO.getDirectories(path)
                 };
             }
         }
@@ -209,23 +195,107 @@ class ProjectRunner extends RunnerBase {
             let nonSubfolderDiskFiles = 0;
 
             const outputFiles: BatchCompileProjectTestCaseEmittedFile[] = [];
+            let inputFiles = testCase.inputFiles;
+            let compilerOptions = createCompilerOptions();
 
-            const projectCompilerResult = compileProjectFiles(moduleKind, () => testCase.inputFiles, getSourceFileText, writeFile);
+            let configFileName: string;
+            if (compilerOptions.project) {
+                // Parse project
+                configFileName = ts.normalizePath(ts.combinePaths(compilerOptions.project, "tsconfig.json"));
+                assert(!inputFiles || inputFiles.length === 0, "cannot specify input files and project option together");
+            }
+            else if (!inputFiles || inputFiles.length === 0) {
+                configFileName = ts.findConfigFile("", fileExists);
+            }
+
+            if (configFileName) {
+                const result = ts.readConfigFile(configFileName, getSourceFileText);
+                if (result.error) {
+                    return {
+                        moduleKind,
+                        errors: [result.error]
+                    };
+                }
+
+                const configObject = result.config;
+                const configParseHost: ts.ParseConfigHost = {
+                    useCaseSensitiveFileNames: Harness.IO.useCaseSensitiveFileNames(),
+                    fileExists,
+                    readDirectory,
+                };
+                const configParseResult = ts.parseJsonConfigFileContent(configObject, configParseHost, ts.getDirectoryPath(configFileName), compilerOptions);
+                if (configParseResult.errors.length > 0) {
+                    return {
+                        moduleKind,
+                        errors: configParseResult.errors
+                    };
+                }
+                inputFiles = configParseResult.fileNames;
+                compilerOptions = configParseResult.options;
+            }
+
+            const projectCompilerResult = compileProjectFiles(moduleKind, () => inputFiles, getSourceFileText, writeFile, compilerOptions);
             return {
                 moduleKind,
                 program: projectCompilerResult.program,
+                compilerOptions,
                 sourceMapData: projectCompilerResult.sourceMapData,
                 outputFiles,
                 errors: projectCompilerResult.errors,
-                nonSubfolderDiskFiles,
             };
+
+            function createCompilerOptions() {
+                // Set the special options that depend on other testcase options
+                const compilerOptions: ts.CompilerOptions = {
+                    mapRoot: testCase.resolveMapRoot && testCase.mapRoot ? Harness.IO.resolvePath(testCase.mapRoot) : testCase.mapRoot,
+                    sourceRoot: testCase.resolveSourceRoot && testCase.sourceRoot ? Harness.IO.resolvePath(testCase.sourceRoot) : testCase.sourceRoot,
+                    module: moduleKind,
+                    moduleResolution: ts.ModuleResolutionKind.Classic, // currently all tests use classic module resolution kind, this will change in the future
+                };
+                // Set the values specified using json
+                const optionNameMap = ts.arrayToMap(ts.optionDeclarations, option => option.name);
+                for (const name in testCase) {
+                    if (name !== "mapRoot" && name !== "sourceRoot" && name in optionNameMap) {
+                        const option = optionNameMap[name];
+                        const optType = option.type;
+                        let value = <any>testCase[name];
+                        if (typeof optType !== "string") {
+                            const key = value.toLowerCase();
+                            if (key in optType) {
+                                value = optType[key];
+                            }
+                        }
+                        compilerOptions[option.name] = value;
+                    }
+                }
+
+                return compilerOptions;
+            }
+
+            function getFileNameInTheProjectTest(fileName: string): string {
+                return ts.isRootedDiskPath(fileName)
+                    ? fileName
+                    : ts.normalizeSlashes(testCase.projectRoot) + "/" + ts.normalizeSlashes(fileName);
+            }
+
+            function readDirectory(rootDir: string, extension: string[], exclude: string[], include: string[]): string[] {
+                const harnessReadDirectoryResult = Harness.IO.readDirectory(getFileNameInTheProjectTest(rootDir), extension, exclude, include);
+                const result: string[] = [];
+                for (let i = 0; i < harnessReadDirectoryResult.length; i++) {
+                    result[i] = ts.getRelativePathToDirectoryOrUrl(testCase.projectRoot, harnessReadDirectoryResult[i],
+                        getCurrentDirectory(), Harness.Compiler.getCanonicalFileName, /*isAbsolutePathAnUrl*/ false);
+                }
+                return result;
+            }
+
+            function fileExists(fileName: string): boolean {
+                return Harness.IO.fileExists(getFileNameInTheProjectTest(fileName));
+            }
 
             function getSourceFileText(fileName: string): string {
                 let text: string = undefined;
                 try {
-                    text = Harness.IO.readFile(ts.isRootedDiskPath(fileName)
-                        ? fileName
-                        : ts.normalizeSlashes(testCase.projectRoot) + "/" + ts.normalizeSlashes(fileName));
+                    text = Harness.IO.readFile(getFileNameInTheProjectTest(fileName));
                 }
                 catch (e) {
                     // text doesn't get defined.
@@ -247,14 +317,15 @@ class ProjectRunner extends RunnerBase {
                     // If the generated output file resides in the parent folder or is rooted path,
                     // we need to instead create files that can live in the project reference folder
                     // but make sure extension of these files matches with the fileName the compiler asked to write
-                    diskRelativeName = "diskFile" + nonSubfolderDiskFiles++ +
+                    diskRelativeName = "diskFile" + nonSubfolderDiskFiles +
                     (Harness.Compiler.isDTS(fileName) ? ".d.ts" :
                     Harness.Compiler.isJS(fileName) ? ".js" : ".js.map");
+                    nonSubfolderDiskFiles++;
                 }
 
                 if (Harness.Compiler.isJS(fileName)) {
                     // Make sure if there is URl we have it cleaned up
-                    const indexOfSourceMapUrl = data.lastIndexOf("//# sourceMappingURL=");
+                    const indexOfSourceMapUrl = data.lastIndexOf(`//# ${"sourceMappingURL"}=`); // This line can be seen as a sourceMappingURL comment
                     if (indexOfSourceMapUrl !== -1) {
                         data = data.substring(0, indexOfSourceMapUrl + 21) + cleanProjectUrl(data.substring(indexOfSourceMapUrl + 21));
                     }
@@ -288,13 +359,16 @@ class ProjectRunner extends RunnerBase {
 
         function compileCompileDTsFiles(compilerResult: BatchCompileProjectTestCaseResult) {
             const allInputFiles: { emittedFileName: string; code: string; }[] = [];
+            if (!compilerResult.program) {
+                return;
+            }
             const compilerOptions = compilerResult.program.getCompilerOptions();
 
             ts.forEach(compilerResult.program.getSourceFiles(), sourceFile => {
-                if (Harness.Compiler.isDTS(sourceFile.fileName)) {
+                if (ts.isDeclarationFile(sourceFile)) {
                     allInputFiles.unshift({ emittedFileName: sourceFile.fileName, code: sourceFile.text });
                 }
-                else if (ts.shouldEmitToOwnFile(sourceFile, compilerResult.program.getCompilerOptions())) {
+                else if (!(compilerOptions.outFile || compilerOptions.out)) {
                     let emitOutputFilePathWithoutExtension: string = undefined;
                     if (compilerOptions.outDir) {
                         let sourceFilePath = ts.getNormalizedAbsolutePath(sourceFile.fileName, compilerResult.program.getCurrentDirectory());
@@ -306,20 +380,24 @@ class ProjectRunner extends RunnerBase {
                     }
 
                     const outputDtsFileName = emitOutputFilePathWithoutExtension + ".d.ts";
-                    allInputFiles.unshift(findOutpuDtsFile(outputDtsFileName));
+                    const file = findOutputDtsFile(outputDtsFileName);
+                    if (file) {
+                        allInputFiles.unshift(file);
+                    }
                 }
                 else {
                     const outputDtsFileName = ts.removeFileExtension(compilerOptions.outFile || compilerOptions.out) + ".d.ts";
-                    const outputDtsFile = findOutpuDtsFile(outputDtsFileName);
+                    const outputDtsFile = findOutputDtsFile(outputDtsFileName);
                     if (!ts.contains(allInputFiles, outputDtsFile)) {
                         allInputFiles.unshift(outputDtsFile);
                     }
                 }
             });
 
-            return compileProjectFiles(compilerResult.moduleKind, getInputFiles, getSourceFileText, writeFile);
+            // Dont allow config files since we are compiling existing source options
+            return compileProjectFiles(compilerResult.moduleKind, getInputFiles, getSourceFileText, writeFile, compilerResult.compilerOptions);
 
-            function findOutpuDtsFile(fileName: string) {
+            function findOutputDtsFile(fileName: string) {
                 return ts.forEach(compilerResult.outputFiles, outputFile => outputFile.emittedFileName === fileName ? outputFile : undefined);
             }
             function getInputFiles() {
@@ -343,11 +421,16 @@ class ProjectRunner extends RunnerBase {
         }
 
         function getErrorsBaseline(compilerResult: CompileProjectFilesResult) {
-            const inputFiles = ts.map(ts.filter(compilerResult.program.getSourceFiles(),
-                sourceFile => sourceFile.fileName !== "lib.d.ts"),
+            const inputFiles = compilerResult.program ? ts.map(ts.filter(compilerResult.program.getSourceFiles(),
+                sourceFile => !Harness.isDefaultLibraryFile(sourceFile.fileName)),
                 sourceFile => {
-                    return { unitName: sourceFile.fileName, content: sourceFile.text };
-                });
+                    return {
+                        unitName: ts.isRootedDiskPath(sourceFile.fileName) ?
+                            RunnerBase.removeFullPaths(sourceFile.fileName) :
+                            sourceFile.fileName,
+                        content: sourceFile.text
+                    };
+                }) : [];
 
             return Harness.Compiler.getErrorBaseline(inputFiles, compilerResult.errors);
         }
@@ -360,40 +443,23 @@ class ProjectRunner extends RunnerBase {
                     let compilerResult: BatchCompileProjectTestCaseResult;
 
                     function getCompilerResolutionInfo() {
-                        const resolutionInfo: ProjectRunnerTestCaseResolutionInfo = {
-                            scenario: testCase.scenario,
-                            projectRoot: testCase.projectRoot,
-                            inputFiles: testCase.inputFiles,
-                            out: testCase.out,
-                            outDir: testCase.outDir,
-                            sourceMap: testCase.sourceMap,
-                            mapRoot: testCase.mapRoot,
-                            resolveMapRoot: testCase.resolveMapRoot,
-                            sourceRoot: testCase.sourceRoot,
-                            resolveSourceRoot: testCase.resolveSourceRoot,
-                            declaration: testCase.declaration,
-                            baselineCheck: testCase.baselineCheck,
-                            runTest: testCase.runTest,
-                            bug: testCase.bug,
-                            rootDir: testCase.rootDir,
-                            resolvedInputFiles: ts.map(compilerResult.program.getSourceFiles(), inputFile => {
-                                return ts.convertToRelativePath(inputFile.fileName, getCurrentDirectory(), path => Harness.Compiler.getCanonicalFileName(path));
-                            }),
-                            emittedFiles: ts.map(compilerResult.outputFiles, outputFile => {
-                                return ts.convertToRelativePath(outputFile.emittedFileName, getCurrentDirectory(), path => Harness.Compiler.getCanonicalFileName(path));
-                            })
-                        };
-
+                        const resolutionInfo: ProjectRunnerTestCaseResolutionInfo & ts.CompilerOptions = JSON.parse(JSON.stringify(testCase));
+                        resolutionInfo.resolvedInputFiles = ts.map(compilerResult.program.getSourceFiles(), inputFile => {
+                            return ts.convertToRelativePath(inputFile.fileName, getCurrentDirectory(), path => Harness.Compiler.getCanonicalFileName(path));
+                        });
+                        resolutionInfo.emittedFiles = ts.map(compilerResult.outputFiles, outputFile => {
+                            return ts.convertToRelativePath(outputFile.emittedFileName, getCurrentDirectory(), path => Harness.Compiler.getCanonicalFileName(path));
+                        });
                         return resolutionInfo;
                     }
 
-                    it(name + ": " + moduleNameToString(moduleKind) , () => {
+                    it(name + ": " + moduleNameToString(moduleKind), () => {
                         // Compile using node
                         compilerResult = batchCompilerProjectTestCase(moduleKind);
                     });
 
                     it("Resolution information of (" + moduleNameToString(moduleKind) + "): " + testCaseFileName, () => {
-                        Harness.Baseline.runBaseline("Resolution information of (" + moduleNameToString(compilerResult.moduleKind) + "): " + testCaseFileName, getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".json", () => {
+                        Harness.Baseline.runBaseline(getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".json", () => {
                             return JSON.stringify(getCompilerResolutionInfo(), undefined, "    ");
                         });
                     });
@@ -401,46 +467,53 @@ class ProjectRunner extends RunnerBase {
 
                     it("Errors for (" + moduleNameToString(moduleKind) + "): " + testCaseFileName, () => {
                         if (compilerResult.errors.length) {
-                            Harness.Baseline.runBaseline("Errors for (" + moduleNameToString(compilerResult.moduleKind) + "): " + testCaseFileName, getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".errors.txt", () => {
+                            Harness.Baseline.runBaseline(getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".errors.txt", () => {
                                 return getErrorsBaseline(compilerResult);
                             });
                         }
                     });
 
-
                     it("Baseline of emitted result (" + moduleNameToString(moduleKind) + "): " + testCaseFileName, () => {
                         if (testCase.baselineCheck) {
+                            const errs: Error[] = [];
                             ts.forEach(compilerResult.outputFiles, outputFile => {
-
-                                Harness.Baseline.runBaseline("Baseline of emitted result (" + moduleNameToString(compilerResult.moduleKind) + "): " + testCaseFileName, getBaselineFolder(compilerResult.moduleKind) + outputFile.fileName, () => {
-                                    try {
-                                        return Harness.IO.readFile(getProjectOutputFolder(outputFile.fileName, compilerResult.moduleKind));
-                                    }
-                                    catch (e) {
-                                        return undefined;
-                                    }
-                                });
+                                // There may be multiple files with different baselines. Run all and report at the end, else
+                                // it stops copying the remaining emitted files from 'local/projectOutput' to 'local/project'.
+                                try {
+                                    Harness.Baseline.runBaseline(getBaselineFolder(compilerResult.moduleKind) + outputFile.fileName, () => {
+                                        try {
+                                            return Harness.IO.readFile(getProjectOutputFolder(outputFile.fileName, compilerResult.moduleKind));
+                                        }
+                                        catch (e) {
+                                            return undefined;
+                                        }
+                                    });
+                                }
+                                catch (e) {
+                                    errs.push(e);
+                                }
                             });
+                            if (errs.length) {
+                                throw Error(errs.join("\n     "));
+                            }
                         }
                     });
 
-
-                    it("SourceMapRecord for (" + moduleNameToString(moduleKind) + "): " + testCaseFileName, () => {
-                        if (compilerResult.sourceMapData) {
-                            Harness.Baseline.runBaseline("SourceMapRecord for (" + moduleNameToString(compilerResult.moduleKind) + "): " + testCaseFileName, getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".sourcemap.txt", () => {
-                                return Harness.SourceMapRecoder.getSourceMapRecord(compilerResult.sourceMapData, compilerResult.program,
-                                    ts.filter(compilerResult.outputFiles, outputFile => Harness.Compiler.isJS(outputFile.emittedFileName)));
-                            });
-                        }
-                    });
+                    // it("SourceMapRecord for (" + moduleNameToString(moduleKind) + "): " + testCaseFileName, () => {
+                    //     if (compilerResult.sourceMapData) {
+                    //         Harness.Baseline.runBaseline(getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".sourcemap.txt", () => {
+                    //             return Harness.SourceMapRecorder.getSourceMapRecord(compilerResult.sourceMapData, compilerResult.program,
+                    //                 ts.filter(compilerResult.outputFiles, outputFile => Harness.Compiler.isJS(outputFile.emittedFileName)));
+                    //         });
+                    //     }
+                    // });
 
                     // Verify that all the generated .d.ts files compile
-
                     it("Errors in generated Dts files for (" + moduleNameToString(moduleKind) + "): " + testCaseFileName, () => {
                         if (!compilerResult.errors.length && testCase.declaration) {
                             const dTsCompileResult = compileCompileDTsFiles(compilerResult);
-                            if (dTsCompileResult.errors.length) {
-                                Harness.Baseline.runBaseline("Errors in generated Dts files for (" + moduleNameToString(compilerResult.moduleKind) + "): " + testCaseFileName, getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".dts.errors.txt", () => {
+                            if (dTsCompileResult && dTsCompileResult.errors.length) {
+                                Harness.Baseline.runBaseline(getBaselineFolder(compilerResult.moduleKind) + testCaseJustName + ".dts.errors.txt", () => {
                                     return getErrorsBaseline(dTsCompileResult);
                                 });
                             }

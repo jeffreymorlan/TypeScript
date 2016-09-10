@@ -14,10 +14,11 @@ export interface Foo {
 }
 
 //// [defaultExportsCannotMerge04.js]
+"use strict";
 function Foo() {
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = Foo;
+exports.default = exports.Foo;
 var Foo;
 (function (Foo) {
-})(Foo || (Foo = {}));
+})(exports.Foo || (exports.Foo = {}));

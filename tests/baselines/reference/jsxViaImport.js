@@ -24,13 +24,14 @@ class TestComponent extends React.Component<any, {}> {
 
 
 //// [consumer.jsx]
+"use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 /// <reference path="component.d.ts" />
-var BaseComponent = require('BaseComponent');
+var BaseComponent = require("BaseComponent");
 var TestComponent = (function (_super) {
     __extends(TestComponent, _super);
     function TestComponent() {
@@ -40,4 +41,4 @@ var TestComponent = (function (_super) {
         return <BaseComponent />;
     };
     return TestComponent;
-})(React.Component);
+}(React.Component));

@@ -10,13 +10,15 @@ export enum E {}
 export module E { var x; }
 
 //// [systemModuleDeclarationMerging.js]
-System.register([], function(exports_1) {
-    var F, C, E;
+System.register([], function (exports_1, context_1) {
+    "use strict";
+    var __moduleName = context_1 && context_1.id;
     function F() { }
+    var F, C, C, E, E;
     exports_1("F", F);
     return {
-        setters:[],
-        execute: function() {
+        setters: [],
+        execute: function () {
             (function (F) {
                 var x;
             })(F = F || (F = {}));
@@ -25,7 +27,7 @@ System.register([], function(exports_1) {
                 function C() {
                 }
                 return C;
-            })();
+            }());
             exports_1("C", C);
             (function (C) {
                 var x;
@@ -39,5 +41,5 @@ System.register([], function(exports_1) {
             })(E = E || (E = {}));
             exports_1("E", E);
         }
-    }
+    };
 });
